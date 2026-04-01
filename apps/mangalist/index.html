@@ -13,38 +13,28 @@
   </header>
 
   <main>
-    <div id="setup">
-      <p>Paste your GitHub Personal Access Token to sync your list:</p>
-      <div class="pat-row">
-        <input id="pat-input" type="password" placeholder="github_pat_..." autocomplete="off" />
-        <button id="save-pat">Connect</button>
-      </div>
+    <form id="add-form">
+      <input id="title-input" type="text" placeholder="Manga title..." autocomplete="off" required />
+      <select id="status-input">
+        <option value="reading">Reading</option>
+        <option value="completed">Completed</option>
+        <option value="plan">Plan to read</option>
+        <option value="dropped">Dropped</option>
+      </select>
+      <input id="chapter-input" type="number" min="0" placeholder="Volume" />
+      <button type="submit">Add</button>
+    </form>
+
+    <div id="filters">
+      <button class="filter active" data-filter="all">All</button>
+      <button class="filter" data-filter="reading">Reading</button>
+      <button class="filter" data-filter="completed">Completed</button>
+      <button class="filter" data-filter="plan">Plan to read</button>
+      <button class="filter" data-filter="dropped">Dropped</button>
     </div>
 
-    <div id="app" style="display:none">
-      <form id="add-form">
-        <input id="title-input" type="text" placeholder="Manga title..." autocomplete="off" required />
-        <select id="status-input">
-          <option value="reading">Reading</option>
-          <option value="completed">Completed</option>
-          <option value="plan">Plan to read</option>
-          <option value="dropped">Dropped</option>
-        </select>
-        <input id="chapter-input" type="number" min="0" placeholder="Volume" />
-        <button type="submit">Add</button>
-      </form>
-
-      <div id="filters">
-        <button class="filter active" data-filter="all">All</button>
-        <button class="filter" data-filter="reading">Reading</button>
-        <button class="filter" data-filter="completed">Completed</button>
-        <button class="filter" data-filter="plan">Plan to read</button>
-        <button class="filter" data-filter="dropped">Dropped</button>
-      </div>
-
-      <ul id="list"></ul>
-      <p id="empty">No manga here yet.</p>
-    </div>
+    <ul id="list"></ul>
+    <p id="empty">No manga here yet.</p>
   </main>
 
   <script src="app.js"></script>

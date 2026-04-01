@@ -55,8 +55,8 @@ async function save() {
     });
     setStatus('Saved ✓');
     setTimeout(() => setStatus(''), 1500);
-  } catch {
-    setStatus('Save failed');
+  } catch (e) {
+    setStatus('Save failed: ' + e.message);
   }
 }
 

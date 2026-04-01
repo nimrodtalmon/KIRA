@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MANGAlist</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <a class="back" href="../../index.html">← KIRA</a>
+    <h1>MANGAlist</h1>
+  </header>
+
+  <main>
+    <form id="add-form">
+      <input id="title-input" type="text" placeholder="Manga title..." autocomplete="off" required />
+      <select id="status-input">
+        <option value="reading">Reading</option>
+        <option value="completed">Completed</option>
+        <option value="plan">Plan to read</option>
+        <option value="dropped">Dropped</option>
+      </select>
+      <input id="chapter-input" type="number" min="0" placeholder="Chapter" />
+      <button type="submit">Add</button>
+    </form>
+
+    <div id="filters">
+      <button class="filter active" data-filter="all">All</button>
+      <button class="filter" data-filter="reading">Reading</button>
+      <button class="filter" data-filter="completed">Completed</button>
+      <button class="filter" data-filter="plan">Plan to read</button>
+      <button class="filter" data-filter="dropped">Dropped</button>
+    </div>
+
+    <ul id="list"></ul>
+    <p id="empty">No manga here yet.</p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

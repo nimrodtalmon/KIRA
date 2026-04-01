@@ -100,4 +100,12 @@ filterBtns.forEach(btn => {
   });
 });
 
+document.getElementById('share-btn').addEventListener('click', () => {
+  const url = location.href.replace('index.html', '').replace(/\/?$/, '/') + 'safta.html';
+  navigator.clipboard.writeText(url);
+  const confirm = document.getElementById('share-confirm');
+  confirm.textContent = 'Link copied!';
+  setTimeout(() => confirm.textContent = '', 2000);
+});
+
 load();

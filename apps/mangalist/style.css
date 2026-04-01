@@ -197,3 +197,24 @@ h1 {
 .delete-btn:hover { color: #f87171; }
 
 #empty { color: #555; font-style: italic; display: none; }
+
+#share-row {
+  margin-top: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+#share-btn {
+  background: #1a1a2e;
+  border: 1px solid #a78bfa;
+  border-radius: 8px;
+  color: #c4b5fd;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+#share-btn:hover { background: #2a1a4e; }
+
+#share-confirm { font-size: 0.85rem; color: #4ade80; }

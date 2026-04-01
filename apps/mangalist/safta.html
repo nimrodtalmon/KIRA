@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manga to buy</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f1a;
+      color: #e0e0ff;
+      font-family: sans-serif;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    h1 { color: #a78bfa; font-size: 2rem; margin-bottom: 0.25rem; }
+    p.sub { color: #888; margin-bottom: 2rem; }
+
+    ul { list-style: none; max-width: 500px; }
+
+    li {
+      background: #1a1a2e;
+      border: 1px solid #2a2a3a;
+      border-radius: 8px;
+      padding: 0.85rem 1.1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 1rem;
+    }
+
+    .vol { color: #888; font-size: 0.85rem; }
+
+    #status { color: #888; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>📚 Manga to buy</h1>
+  <p class="sub">Here's the list!</p>
+  <p id="status">Loading...</p>
+  <ul id="list"></ul>
+
+  <script>
+    const DB = 'https://kira-27aed-default-rtdb.europe-west1.firebasedatabase.app/mangalist.json';
+
+    fetch(DB)
+      .then(r => r.json())
+      .then(data => {
+        const items = (data || []).filter(i => i.status === 'plan');
+        const statusEl = document.getElementById('status');
+        const listEl = document.getElementById('list');
+
+        if (items.length === 0) {
+          statusEl.textContent = 'No manga on the list right now!';
+          return;
+        }
+
+        statusEl.textContent = '';
+        items.forEach(item => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <span>${item.title.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>
+            ${item.chapter > 0 ? `<span class="vol">up to vol. ${item.chapter}</span>` : ''}
+          `;
+          listEl.appendChild(li);
+        });
+      })
+      .catch(() => {
+        document.getElementById('status').textContent = 'Failed to load list.';
+      });
+  </script>
+</body>
+</html>

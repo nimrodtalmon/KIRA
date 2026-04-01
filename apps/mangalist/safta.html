@@ -38,7 +38,7 @@
   </style>
 </head>
 <body>
-  <h1>📚 Manga to buy</h1>
+  <h1>📚 MANGAlist</h1>
   <p class="sub">Here's the list!</p>
   <p id="status">Loading...</p>
   <ul id="list"></ul>
@@ -63,7 +63,7 @@
           const li = document.createElement('li');
           li.innerHTML = `
             <span>${item.title.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>
-            ${item.chapter > 0 ? `<span class="vol">up to vol. ${item.chapter}</span>` : ''}
+            ${item.chapter > 0 ? `<span class="vol">vol. ${item.chapter}</span>` : ''}
           `;
           listEl.appendChild(li);
         });

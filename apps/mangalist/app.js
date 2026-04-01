@@ -22,7 +22,7 @@ async function getBinId() {
     const res = await fetch(`${JSONBIN_BASE}/b`, {
       method: 'POST',
       headers: { ...HEADERS, 'X-Bin-Name': 'mangalist', 'X-Bin-Private': 'false' },
-      body: JSON.stringify({ items: [] }),
+      body: JSON.stringify({ items: [], app: 'mangalist' }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || res.status);
@@ -58,7 +58,7 @@ async function save() {
     await fetch(`${JSONBIN_BASE}/b/${id}`, {
       method: 'PUT',
       headers: HEADERS,
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, app: 'mangalist' }),
     });
     setStatus('Saved ✓');
     setTimeout(() => setStatus(''), 1500);

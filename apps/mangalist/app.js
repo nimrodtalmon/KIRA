@@ -1,6 +1,4 @@
-const JSONBIN_KEY = '$2a$10$eKgPQ6fKBpLt5wHSNa5tgePaFxQ./EjLU9qCUX3yOYQsl8tbtet4S';
-const JSONBIN_BASE = 'https://api.jsonbin.io/v3';
-const HEADERS = { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY };
+const DB = 'https://kira-27aed-default-rtdb.europe-west1.firebasedatabase.app/mangalist.json';
 
 const form = document.getElementById('add-form');
 const titleInput = document.getElementById('title-input');
@@ -13,39 +11,15 @@ const syncEl = document.getElementById('sync-status');
 
 let items = [];
 let activeFilter = 'all';
-let binId = localStorage.getItem('mangalist_bin_id');
-
-async function getBinId() {
-  if (binId) return binId;
-  setStatus('Setting up...');
-  try {
-    const res = await fetch(`${JSONBIN_BASE}/b`, {
-      method: 'POST',
-      headers: { ...HEADERS, 'X-Bin-Name': 'mangalist', 'X-Bin-Private': 'false' },
-      body: JSON.stringify({ items: [], app: 'mangalist' }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || res.status);
-    binId = data.metadata.id;
-    localStorage.setItem('mangalist_bin_id', binId);
-    return binId;
-  } catch (e) {
-    setStatus('Setup failed: ' + e.message);
-    throw e;
-  }
-}
 
 async function load() {
   setStatus('Loading...');
   try {
-    const id = await getBinId();
-    const res = await fetch(`${JSONBIN_BASE}/b/${id}/latest`, { headers: HEADERS });
+    const res = await fetch(DB);
     const data = await res.json();
-    items = data.record.items;
+    items = data || [];
     setStatus('');
   } catch (e) {
-    binId = null;
-    localStorage.removeItem('mangalist_bin_id');
     setStatus('Failed to load: ' + e.message);
   }
   render();
@@ -54,12 +28,7 @@ async function load() {
 async function save() {
   setStatus('Saving...');
   try {
-    const id = await getBinId();
-    await fetch(`${JSONBIN_BASE}/b/${id}`, {
-      method: 'PUT',
-      headers: HEADERS,
-      body: JSON.stringify({ items, app: 'mangalist' }),
-    });
+    await fetch(DB, { method: 'PUT', body: JSON.stringify(items) });
     setStatus('Saved ✓');
     setTimeout(() => setStatus(''), 1500);
   } catch (e) {

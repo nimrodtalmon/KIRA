@@ -55,7 +55,7 @@ function render() {
 }
 
 function statusLabel(s) {
-  return { reading: 'Reading', completed: 'Completed', plan: 'Plan to read', dropped: 'Dropped' }[s];
+  return { reading: 'Reading', completed: 'Completed', plan: 'Plan to read' }[s];
 }
 
 function escHtml(str) {

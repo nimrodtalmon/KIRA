@@ -24,6 +24,7 @@ async function getBinId() {
     body: JSON.stringify([]),
   });
   const data = await res.json();
+  if (!res.ok) throw new Error(data.message || res.status);
   binId = data.metadata.id;
   localStorage.setItem('mangalist_bin_id', binId);
   return binId;
@@ -37,8 +38,8 @@ async function load() {
     const data = await res.json();
     items = data.record;
     setStatus('');
-  } catch {
-    setStatus('Failed to load');
+  } catch (e) {
+    setStatus('Failed to load: ' + e.message);
   }
   render();
 }

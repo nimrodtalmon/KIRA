@@ -1,7 +1,6 @@
-const GIST_ID = '2cca47e7844e628738a9fdc4d196fd2a';
-const GIST_FILE = 'mangalist.json';
-const API = `https://api.github.com/gists/${GIST_ID}`;
-const _T = atob('Z2l0aHViX3BhdF8xMUJXUVJHN1EwNE52YmI5TU1wYlZUX21HVnhYSkpQSENHdDZLMTVpTTc3U29SMXJSYUU1ak5WdUo4bGxJN1FMb3ZZWUw1M002Sm1TRHY4VGkz');
+const JSONBIN_KEY = '$2a$10$eKgPQ6fKBpLt5wHSNa5tgePaFxQ./EjLU9qCUX3yOYQsl8tbtet4S';
+const JSONBIN_BASE = 'https://api.jsonbin.io/v3';
+const HEADERS = { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY };
 
 const form = document.getElementById('add-form');
 const titleInput = document.getElementById('title-input');
@@ -14,15 +13,29 @@ const syncEl = document.getElementById('sync-status');
 
 let items = [];
 let activeFilter = 'all';
+let binId = localStorage.getItem('mangalist_bin_id');
 
-const HEADERS = { 'Authorization': `Bearer ${_T}`, 'Content-Type': 'application/json' };
+async function getBinId() {
+  if (binId) return binId;
+  setStatus('Setting up...');
+  const res = await fetch(`${JSONBIN_BASE}/b`, {
+    method: 'POST',
+    headers: { ...HEADERS, 'X-Bin-Name': 'mangalist', 'X-Bin-Private': 'false' },
+    body: JSON.stringify([]),
+  });
+  const data = await res.json();
+  binId = data.metadata.id;
+  localStorage.setItem('mangalist_bin_id', binId);
+  return binId;
+}
 
 async function load() {
   setStatus('Loading...');
   try {
-    const res = await fetch(API, { headers: HEADERS });
+    const id = await getBinId();
+    const res = await fetch(`${JSONBIN_BASE}/b/${id}/latest`, { headers: HEADERS });
     const data = await res.json();
-    items = JSON.parse(data.files[GIST_FILE].content || '[]');
+    items = data.record;
     setStatus('');
   } catch {
     setStatus('Failed to load');
@@ -33,10 +46,11 @@ async function load() {
 async function save() {
   setStatus('Saving...');
   try {
-    await fetch(API, {
-      method: 'PATCH',
+    const id = await getBinId();
+    await fetch(`${JSONBIN_BASE}/b/${id}`, {
+      method: 'PUT',
       headers: HEADERS,
-      body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(items) } } }),
+      body: JSON.stringify(items),
     });
     setStatus('Saved ✓');
     setTimeout(() => setStatus(''), 1500);

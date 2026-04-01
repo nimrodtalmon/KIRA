@@ -18,16 +18,21 @@ let binId = localStorage.getItem('mangalist_bin_id');
 async function getBinId() {
   if (binId) return binId;
   setStatus('Setting up...');
-  const res = await fetch(`${JSONBIN_BASE}/b`, {
-    method: 'POST',
-    headers: { ...HEADERS, 'X-Bin-Name': 'mangalist', 'X-Bin-Private': 'false' },
-    body: JSON.stringify({ items: [] }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || res.status);
-  binId = data.metadata.id;
-  localStorage.setItem('mangalist_bin_id', binId);
-  return binId;
+  try {
+    const res = await fetch(`${JSONBIN_BASE}/b`, {
+      method: 'POST',
+      headers: { ...HEADERS, 'X-Bin-Name': 'mangalist', 'X-Bin-Private': 'false' },
+      body: JSON.stringify({ items: [] }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || res.status);
+    binId = data.metadata.id;
+    localStorage.setItem('mangalist_bin_id', binId);
+    return binId;
+  } catch (e) {
+    setStatus('Setup failed: ' + e.message);
+    throw e;
+  }
 }
 
 async function load() {

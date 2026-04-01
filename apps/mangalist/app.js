@@ -21,7 +21,7 @@ async function getBinId() {
   const res = await fetch(`${JSONBIN_BASE}/b`, {
     method: 'POST',
     headers: { ...HEADERS, 'X-Bin-Name': 'mangalist', 'X-Bin-Private': 'false' },
-    body: JSON.stringify([]),
+    body: JSON.stringify({ items: [] }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || res.status);
@@ -36,9 +36,11 @@ async function load() {
     const id = await getBinId();
     const res = await fetch(`${JSONBIN_BASE}/b/${id}/latest`, { headers: HEADERS });
     const data = await res.json();
-    items = data.record;
+    items = data.record.items;
     setStatus('');
   } catch (e) {
+    binId = null;
+    localStorage.removeItem('mangalist_bin_id');
     setStatus('Failed to load: ' + e.message);
   }
   render();
@@ -51,7 +53,7 @@ async function save() {
     await fetch(`${JSONBIN_BASE}/b/${id}`, {
       method: 'PUT',
       headers: HEADERS,
-      body: JSON.stringify(items),
+      body: JSON.stringify({ items }),
     });
     setStatus('Saved ✓');
     setTimeout(() => setStatus(''), 1500);

@@ -23,7 +23,7 @@ function render() {
     li.innerHTML = `
       <span class="title">${escHtml(item.title)}</span>
       <span class="badge badge-${item.status}">${statusLabel(item.status)}</span>
-      <span class="chapter">Ch. <input type="number" min="0" value="${item.chapter}" data-id="${item.id}" /></span>
+      <span class="chapter">Vol. <input type="number" min="0" value="${item.chapter}" data-id="${item.id}" /></span>
       <button class="delete-btn" data-id="${item.id}" title="Remove">✕</button>
     `;
 

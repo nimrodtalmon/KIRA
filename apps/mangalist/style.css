@@ -26,6 +26,57 @@ h1 {
   margin-top: 0.25rem;
 }
 
+#sync-status {
+  font-size: 0.75rem;
+  color: #888;
+  font-weight: normal;
+  vertical-align: middle;
+}
+
+#setup {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+  padding: 1.5rem;
+  max-width: 500px;
+}
+
+#setup p {
+  color: #aaa;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.pat-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#pat-input {
+  flex: 1;
+  background: #0f0f1a;
+  border: 1px solid #2a2a3a;
+  border-radius: 6px;
+  color: #e0e0ff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+#pat-input:focus { border-color: #a78bfa; }
+
+#save-pat {
+  background: #a78bfa;
+  color: #0f0f1a;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1.25rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#save-pat:hover { background: #c4b5fd; }
+
 #add-form {
   display: flex;
   gap: 0.5rem;

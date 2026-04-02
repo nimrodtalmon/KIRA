@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bored?</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Screen 1: My List -->
+  <div id="screen-list">
+    <header>
+      <a class="back" href="../../index.html">← KIRA</a>
+      <h1>Bored? <span id="sync-status"></span></h1>
+    </header>
+    <main>
+      <form id="add-form">
+        <input id="activity-input" type="text" placeholder="Something you like to do..." autocomplete="off" required />
+        <button type="submit">Add</button>
+      </form>
+      <ul id="activity-list"></ul>
+      <p id="empty-msg">No activities yet — add some above!</p>
+      <button id="bored-btn">😩 I'm Bored!</button>
+    </main>
+  </div>
+
+  <!-- Screen 2: Bored! -->
+  <div id="screen-bored">
+    <div id="suggestion-card">
+      <span id="suggestion-source"></span>
+      <p id="suggestion-text"></p>
+      <button id="next-btn">Next →</button>
+    </div>
+    <a id="edit-link" href="#">Edit my list</a>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

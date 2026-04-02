@@ -116,9 +116,9 @@ function renderList() {
 }
 
 function buildShuffle() {
-  const mine = myActivities.map(a => ({ text: a, source: 'from your list' }));
-  const builtin = BUILT_IN.map(a => ({ text: a, source: 'random idea' }));
-  shuffled = shuffle([...mine, ...builtin]);
+  const mine = shuffle(myActivities.map(a => ({ text: a, source: 'from your list' })));
+  const builtin = shuffle(BUILT_IN.map(a => ({ text: a, source: 'random idea' })));
+  shuffled = [...mine, ...builtin];
   shuffleIndex = 0;
 }
 

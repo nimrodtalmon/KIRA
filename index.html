@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+  <meta name="theme-color" content="#f6f1e7" />
+  <title>פיד שירה · Poetry Feed</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Loading -->
+  <div id="loading" class="overlay-center">
+    <div class="spinner"></div>
+    <p>טוען שירה…</p>
+  </div>
+
+  <!-- Top chrome (minimal, auto-fading) -->
+  <header id="topbar" hidden>
+    <button id="open-saved" class="icon-btn" aria-label="שמורים" title="שמורים">♥</button>
+    <button id="open-settings" class="icon-btn" aria-label="הגדרות" title="הגדרות">☰</button>
+  </header>
+
+  <!-- The feed: one poem per screen, swipe up for the next -->
+  <main id="feed" hidden aria-live="polite"></main>
+
+  <!-- Settings panel -->
+  <div id="settings-panel" class="panel" hidden>
+    <div class="panel-inner">
+      <button class="panel-close" data-close aria-label="סגירה">✕</button>
+      <h2>הגדרות</h2>
+
+      <label class="switch-row">
+        <span>ניקוד</span>
+        <input type="checkbox" id="nikkud-toggle" />
+        <span class="switch"></span>
+      </label>
+
+      <div class="seg-block">
+        <span class="seg-label">סינון</span>
+        <div class="segment" id="filter-segment">
+          <button data-filter="all" class="seg-btn">הכול</button>
+          <button data-filter="original" class="seg-btn">מקור עברי</button>
+          <button data-filter="translated" class="seg-btn">מתורגם</button>
+        </div>
+      </div>
+
+      <div class="about">
+        <h3>על האפליקציה</h3>
+        <p>פיד שקט של שירה עברית ושירה מתורגמת לעברית — נחלת הכלל. כל השירים מתוך
+          מיזם בן-יהודה.</p>
+        <a href="https://benyehuda.org" target="_blank" rel="noopener">benyehuda.org ↗</a>
+        <p class="count" id="corpus-count"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Saved panel -->
+  <div id="saved-panel" class="panel" hidden>
+    <div class="panel-inner">
+      <button class="panel-close" data-close aria-label="סגירה">✕</button>
+      <h2>שמורים</h2>
+      <ul id="saved-list"></ul>
+      <p id="saved-empty" class="empty">עוד לא שמרת שירים. לבך על שיר יוסיף אותו לכאן.</p>
+    </div>
+  </div>
+
+  <!-- Reader overlay (opening a saved poem) -->
+  <div id="reader" class="panel" hidden>
+    <div class="panel-inner reader-inner">
+      <button class="panel-close" data-close aria-label="סגירה">✕</button>
+      <div id="reader-body"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

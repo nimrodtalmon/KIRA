@@ -286,10 +286,10 @@ def build(args) -> int:
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    # The full corpus ships as `poems.pf` (plain minified JSON, just a custom
-    # extension so Metro bundles it as a runtime asset instead of inlining 31 MB
-    # into the JS bundle — see metro.config.js and src/data/corpus.ts).
-    (out_dir / "poems.pf").write_text(
+    # Output filename. The static web app fetches `poems.json`; the (archived)
+    # native app bundles `poems.pf` (a custom extension so Metro treats it as a
+    # runtime asset instead of inlining the JSON into the JS bundle).
+    (out_dir / args.out_name).write_text(
         json.dumps(poems, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
@@ -331,7 +331,7 @@ def build(args) -> int:
         log(f"length (lines)     : min={lengths[0]} p50={q(.5)} p90={q(.9)} p99={q(.99)} max={lengths[-1]}")
     log("top authors        : " + ", ".join(f"{a}({c})" for a, c in authors.most_common(8)))
     log("skipped            : " + (", ".join(f"{k}={v}" for k, v in skipped.items()) or "none"))
-    log(f"\nwrote {out_dir/'poems.pf'}  and  {out_dir/'poems.sample.json'} ({len(sample)} items)")
+    log(f"\nwrote {out_dir/args.out_name}  and  {out_dir/'poems.sample.json'} ({len(sample)} items)")
     log("===============================================")
     return 0
 
@@ -342,7 +342,8 @@ def main():
     ap.add_argument("--catalogue", help="Path to pseudocatalogue.csv (defaults to <dump-dir>/pseudocatalogue.csv).")
     ap.add_argument("--clone", action="store_true", help="Sparse-clone the dump if --dump-dir is not given / missing.")
     ap.add_argument("--clone-dir", default="/tmp/by_dump", help="Where to sparse-clone the dump.")
-    ap.add_argument("--out-dir", default="assets", help="Output directory for poems.json (default: assets).")
+    ap.add_argument("--out-dir", default=".", help="Output directory for the corpus (default: current dir).")
+    ap.add_argument("--out-name", default="poems.json", help="Corpus filename (default: poems.json; native app uses poems.pf).")
     ap.add_argument("--max-lines", type=int, default=DEFAULT_MAX_LINES,
                     help=f"Exclude poems longer than this many non-empty lines from the "
                          f"bundle (default {DEFAULT_MAX_LINES}). Pass 0 for no cap / full corpus.")

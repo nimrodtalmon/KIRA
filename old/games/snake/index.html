@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snake</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f1a;
+      color: #e0e0ff;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 1rem;
+    }
+
+    h1 { color: #a78bfa; font-size: 2rem; }
+
+    #hud {
+      display: flex;
+      gap: 2rem;
+      font-size: 1rem;
+      color: #c4b5fd;
+    }
+
+    canvas {
+      border: 2px solid #a78bfa;
+      border-radius: 6px;
+      background: #1a1a2e;
+    }
+
+    #message {
+      font-size: 1.1rem;
+      color: #888;
+      min-height: 1.5rem;
+    }
+
+    a.back {
+      color: #a78bfa;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    a.back:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>🐍 Snake</h1>
+  <div id="hud">
+    <span>Score: <strong id="score">0</strong></span>
+    <span>Best: <strong id="best">0</strong></span>
+  </div>
+  <canvas id="canvas" width="400" height="400"></canvas>
+  <div id="message">Press Arrow keys or WASD to start</div>
+  <a class="back" href="../../index.html">← Back to home</a>
+
+  <script src="snake.js"></script>
+</body>
+</html>

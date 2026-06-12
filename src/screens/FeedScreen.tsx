@@ -15,7 +15,8 @@ import { colors } from '../theme';
 import { Poem } from '../types';
 
 export default function FeedScreen() {
-  const { poems, settings, getSeen, markSeen, isSaved, toggleSaved } = useAppState();
+  const { poems, settings, savedIds, getSeen, markSeen, toggleSaved } = useAppState();
+  const savedSet = useMemo(() => new Set(savedIds), [savedIds]);
   const [height, setHeight] = useState(0);
   const [deck, setDeck] = useState<Poem[]>([]);
   const listRef = useRef<FlatList<Poem>>(null);
@@ -49,11 +50,11 @@ export default function FeedScreen() {
         poem={item}
         height={height}
         nikkud={settings.nikkud}
-        saved={isSaved(item.id)}
+        saved={savedSet.has(item.id)}
         onToggleSave={() => toggleSaved(item.id)}
       />
     ),
-    [height, settings.nikkud, isSaved, toggleSaved],
+    [height, settings.nikkud, savedSet, toggleSaved],
   );
 
   const getItemLayout = useCallback(
@@ -76,6 +77,7 @@ export default function FeedScreen() {
         <FlatList
           ref={listRef}
           data={deck}
+          extraData={savedSet}
           keyExtractor={(item, i) => `${item.id}:${i}`}
           renderItem={renderItem}
           getItemLayout={getItemLayout}

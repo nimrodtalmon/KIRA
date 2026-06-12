@@ -36,8 +36,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettingsState] = useState<Settings>(DEFAULT_SETTINGS);
   const [savedIds, setSavedIds] = useState<string[]>([]);
 
-  // seen_ids is high-churn and never read into render, so keep it in a ref and
-  // flush with the rest of the persisted state rather than re-rendering on it.
+  // Latest values mirrored into refs so the persist() and the mutators can be
+  // STABLE (empty deps). FeedScreen captures markSeen once in a FlatList ref, so
+  // these mutators must not go stale or a scroll could clobber a fresh like.
+  const savedRef = useRef<string[]>([]);
+  const settingsRef = useRef<Settings>(DEFAULT_SETTINGS);
   const seenRef = useRef<Set<string>>(new Set());
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -48,6 +51,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         const [loadedPoems, persisted] = await Promise.all([loadPoems(), loadState()]);
         if (!alive) return;
         seenRef.current = new Set(persisted.seen_ids);
+        savedRef.current = persisted.saved_ids;
+        settingsRef.current = persisted.settings;
         setSavedIds(persisted.saved_ids);
         setSettingsState(persisted.settings);
         setPoems(loadedPoems);
@@ -58,56 +63,54 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     })();
     return () => {
       alive = false;
+      if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, []);
 
   const byId = useMemo(() => new Map(poems.map((p) => [p.id, p])), [poems]);
 
-  const flush = useCallback(
-    (nextSaved: string[], nextSettings: Settings) => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
-        void saveState({
-          saved_ids: nextSaved,
-          seen_ids: Array.from(seenRef.current),
-          settings: nextSettings,
-        });
-      }, 400);
-    },
-    [],
-  );
+  // Debounced write of whatever the refs currently hold.
+  const persist = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      void saveState({
+        saved_ids: savedRef.current,
+        seen_ids: Array.from(seenRef.current),
+        settings: settingsRef.current,
+      });
+    }, 400);
+  }, []);
 
-  const isSaved = useCallback((id: string) => savedIds.includes(id), [savedIds]);
+  const isSaved = useCallback((id: string) => savedRef.current.includes(id), []);
 
   const toggleSaved = useCallback(
     (id: string) => {
-      setSavedIds((prev) => {
-        const next = prev.includes(id) ? prev.filter((x) => x !== id) : [id, ...prev];
-        flush(next, settings);
-        return next;
-      });
+      const prev = savedRef.current;
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [id, ...prev];
+      savedRef.current = next;
+      setSavedIds(next);
+      persist();
     },
-    [flush, settings],
+    [persist],
   );
 
   const markSeen = useCallback(
     (id: string) => {
       if (seenRef.current.has(id)) return;
       seenRef.current.add(id);
-      flush(savedIds, settings);
+      persist();
     },
-    [flush, savedIds, settings],
+    [persist],
   );
 
   const setSettings = useCallback(
     (patch: Partial<Settings>) => {
-      setSettingsState((prev) => {
-        const next = { ...prev, ...patch };
-        flush(savedIds, next);
-        return next;
-      });
+      const next = { ...settingsRef.current, ...patch };
+      settingsRef.current = next;
+      setSettingsState(next);
+      persist();
     },
-    [flush, savedIds],
+    [persist],
   );
 
   const getSeen = useCallback(() => new Set(seenRef.current), []);

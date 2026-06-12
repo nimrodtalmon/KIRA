@@ -48,8 +48,11 @@ function bodyFontSize(lines: number): number {
 }
 
 export default function PoemCard({ poem, height, nikkud, saved, onToggleSave }: Props) {
-  const [overflow, setOverflow] = useState(false);
-  const [viewH, setViewH] = useState(0);
+  // Enable internal scroll only when the body genuinely overflows its area —
+  // measured, not guessed, so a long poem is never silently clipped.
+  const [scrollH, setScrollH] = useState(0);
+  const [contentH, setContentH] = useState(0);
+  const overflow = contentH > scrollH + 1;
 
   const body = (nikkud ? poem.body_nikkud : poem.body_plain) || poem.body_plain;
   const fontSize = bodyFontSize(poem.length_lines);
@@ -66,10 +69,7 @@ export default function PoemCard({ poem, height, nikkud, saved, onToggleSave }: 
 
   return (
     <View style={[styles.page, { height }]}>
-      <View
-        style={styles.inner}
-        onLayout={(e) => setViewH(e.nativeEvent.layout.height)}
-      >
+      <View style={styles.inner}>
         <Text style={styles.title} numberOfLines={3}>
           {poem.title}
         </Text>
@@ -79,7 +79,8 @@ export default function PoemCard({ poem, height, nikkud, saved, onToggleSave }: 
           contentContainerStyle={styles.bodyContent}
           scrollEnabled={overflow}
           showsVerticalScrollIndicator={overflow}
-          onContentSizeChange={(_w, h) => setOverflow(h > viewH * 0.72)}
+          onLayout={(e) => setScrollH(e.nativeEvent.layout.height)}
+          onContentSizeChange={(_w, h) => setContentH(h)}
         >
           <Text style={[styles.body, { fontSize, lineHeight }]} selectable>
             {body}

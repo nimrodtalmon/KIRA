@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import html
 import json
 import os
 import random
@@ -121,21 +122,39 @@ def read_text(p: Path) -> str | None:
         return None
 
 
+# The volunteer-attribution footer the dump appends to almost every file. We
+# keep attribution as structured metadata (source_url) instead of in the poem.
+FOOTER_RE = re.compile(r"(הפיקו.*פרויקט|מתנדבי\s+פרויקט\s+בן)")
+
+
 def clean_body(raw: str, title: str) -> str:
-    """Drop the leading title line + leading whitespace, normalize blank runs.
+    """Strip the title line + Ben-Yehuda boilerplate, normalize blank runs.
 
     The dump's verse convention is: one blank line BETWEEN lines of a stanza,
     two (or more) blank lines BETWEEN stanzas. So a single blank run is a plain
     line break (we drop it, lines become adjacent) and a run of >=2 blanks is a
     stanza break (we keep one blank line). Comparing the leading title is done
     nikkud-insensitively so it's stripped from the plain variant too.
+
+    We also remove the trailing "this text was produced by Project Ben-Yehuda
+    volunteers…" footer and footnote-definition lines (the ↩ back-ref marker),
+    and decode HTML entities (&nbsp; etc.) the dump leaves in the plain text.
     """
     if raw is None:
         return ""
-    lines = raw.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    text = html.unescape(raw.replace("\r\n", "\n").replace("\r", "\n")).replace("\xa0", " ")
+    lines = text.split("\n")
     # Strip a leading line that repeats the title (dump puts it on line 1).
     if lines and denik(lines[0].strip()) == denik(title.strip()):
         lines = lines[1:]
+    # Cut the volunteer footer and everything after it.
+    for i, ln in enumerate(lines):
+        s = ln.strip()
+        if s.startswith("את הטקסט") or FOOTER_RE.search(s):
+            lines = lines[:i]
+            break
+    # Drop footnote-definition lines (they carry the ↩ return marker).
+    lines = [ln for ln in lines if "↩" not in ln]
     # Drop leading whitespace-only lines (the dump has a stray tab + blanks).
     while lines and not lines[0].strip():
         lines.pop(0)

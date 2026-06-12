@@ -22,7 +22,8 @@ itself — both need your Expo account / a machine with normal network.
 - `expo export --platform android` — clean (843 modules, `poems.pf` bundled as a
   32 MB runtime asset, JS bundle only 2.1 MB → corpus is **not** inlined).
 - Corpus pipeline run end-to-end against the real Ben-Yehuda dump:
-  **11,172 poems, 406 authors, 698 translations.**
+  **11,255 poems, 410 authors, 698 translations** (~28 MB, footer/footnote cruft
+  stripped).
 
 ## NOT verified (no Android device/emulator in this environment)
 

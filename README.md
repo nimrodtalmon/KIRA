@@ -72,10 +72,10 @@ environment, and the GitHub dump gives both nikkud variants (`txt/` +
 
 | metric | value |
 | --- | --- |
-| poems bundled | **11,172** |
-| unique authors | 406 |
-| translations | 698 (de 368, ru 146, en 85, fr 26, la 17, grc 14, yi 13…) |
-| length | p50 = 17 lines, p90 = 65, capped at 50 for the feed |
+| poems bundled | **11,255** (~28 MB) |
+| unique authors | 410 |
+| translations | 698 (de 363, ru 149, en 85, fr 26, la 18, grc 14, yi 14…) |
+| length | p50 = 16 lines, capped at 50 for the feed |
 
 Decisions baked into the pipeline (all reversible, all flagged):
 

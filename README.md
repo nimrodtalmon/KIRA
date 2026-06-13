@@ -14,13 +14,34 @@ Works fully offline once loaded.
 
 ## Features
 
-- Vertical full-screen pager (CSS scroll-snap), one poem per screen, RTL.
+- **Tinder-style swipe deck.** Swipe **right = like**, **left = dislike** (drag,
+  the ✕ / ♥ buttons, or ← / → keys). One-level **undo**.
+- **Learns what you like, on-device.** A content-based recommender ranks unseen
+  poems by your taste and gets better as you swipe — see below.
 - **8,719 poems**, 313 authors, **489 translations** (de/ru/en/fr/la/grc/yi…).
 - Nikkud toggle (instant swap between vocalized / plain), persisted.
 - Filter: all / Hebrew-original / translated.
-- Like a poem → a local **Saved** list (stored in `localStorage`).
-- Share, and a per-poem **מקור** link back to benyehuda.org.
+- Liked poems collect in a local **אהבתי** list; share + per-poem **מקור** link.
 - Bundled **Frank Ruhl Libre** Hebrew serif (real nikkud support, OFL).
+
+## The "ML backend" — running in your browser
+
+A static GitHub Pages site has **no server**, so the learning runs entirely
+**on your device** (which is ideal here: private, offline, zero infrastructure).
+It's a content-based recommender with online learning (`recommender.js`):
+
+- Each poem → a sparse **feature set**: author, original language,
+  original/translated, length bucket, and hashed **content words** (so it can
+  pick up themes/style, not just author).
+- An **online logistic-regression** model nudges its weights on every swipe
+  (right → +1, left → 0). Predicted probability ranks the unseen pool, with an
+  ε-greedy **exploration** rate so it keeps showing you new things.
+- Everything (likes, dislikes, model weights) persists in `localStorage`.
+  Settings shows a live "what I've learned about you" line, and an **איפוס
+  הלמידה** (reset learning) button.
+
+> Want a *real* server backend instead (cross-device sync, a heavier model)?
+> That needs a host beyond GitHub Pages — happy to add it if you go that route.
 
 ## Run / deploy
 

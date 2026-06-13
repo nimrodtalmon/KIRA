@@ -8,22 +8,27 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Loading -->
   <div id="loading" class="overlay-center">
     <div class="spinner"></div>
     <p>טוען שירה…</p>
   </div>
 
-  <!-- Top chrome (minimal, auto-fading) -->
   <header id="topbar" hidden>
-    <button id="open-saved" class="icon-btn" aria-label="שמורים" title="שמורים">♥</button>
+    <button id="open-liked" class="icon-btn" aria-label="אהבתי" title="אהבתי">♥</button>
     <button id="open-settings" class="icon-btn" aria-label="הגדרות" title="הגדרות">☰</button>
   </header>
 
-  <!-- The feed: one poem per screen, swipe up for the next -->
-  <main id="feed" hidden aria-live="polite"></main>
+  <main id="stage" hidden>
+    <div id="stack" aria-live="polite"></div>
+    <div id="hint">החליקו ימינה אם אהבתם · שמאלה אם לא</div>
+    <div id="controls">
+      <button id="btn-nope" class="ctrl nope" aria-label="לא אהבתי">✕</button>
+      <button id="btn-undo" class="ctrl undo" aria-label="ביטול" disabled>↺</button>
+      <button id="btn-like" class="ctrl like" aria-label="אהבתי">♥</button>
+    </div>
+  </main>
 
-  <!-- Settings panel -->
+  <!-- Settings -->
   <div id="settings-panel" class="panel" hidden>
     <div class="panel-inner">
       <button class="panel-close" data-close aria-label="סגירה">✕</button>
@@ -44,27 +49,33 @@
         </div>
       </div>
 
+      <div class="learn-block">
+        <h3>מה למדתי עליך</h3>
+        <p id="learned" class="learned"></p>
+        <button id="reset-learning" class="text-btn">איפוס הלמידה</button>
+      </div>
+
       <div class="about">
         <h3>על האפליקציה</h3>
-        <p>פיד שקט של שירה עברית ושירה מתורגמת לעברית — נחלת הכלל. כל השירים מתוך
-          מיזם בן-יהודה.</p>
+        <p>פיד שקט של שירה עברית ושירה מתורגמת לעברית — נחלת הכלל. ההמלצות נלמדות
+          אצלכם במכשיר, ללא שרת. כל השירים מתוך מיזם בן-יהודה.</p>
         <a href="https://benyehuda.org" target="_blank" rel="noopener">benyehuda.org ↗</a>
         <p class="count" id="corpus-count"></p>
       </div>
     </div>
   </div>
 
-  <!-- Saved panel -->
-  <div id="saved-panel" class="panel" hidden>
+  <!-- Liked -->
+  <div id="liked-panel" class="panel" hidden>
     <div class="panel-inner">
       <button class="panel-close" data-close aria-label="סגירה">✕</button>
-      <h2>שמורים</h2>
-      <ul id="saved-list"></ul>
-      <p id="saved-empty" class="empty">עוד לא שמרת שירים. לבך על שיר יוסיף אותו לכאן.</p>
+      <h2>אהבתי</h2>
+      <ul id="liked-list"></ul>
+      <p id="liked-empty" class="empty">עוד לא אהבת שירים. החליקו ימינה על שיר שאהבתם.</p>
     </div>
   </div>
 
-  <!-- Reader overlay (opening a saved poem) -->
+  <!-- Reader -->
   <div id="reader" class="panel" hidden>
     <div class="panel-inner reader-inner">
       <button class="panel-close" data-close aria-label="סגירה">✕</button>
@@ -72,6 +83,7 @@
     </div>
   </div>
 
+  <script src="recommender.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

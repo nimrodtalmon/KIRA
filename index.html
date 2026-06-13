@@ -13,18 +13,16 @@
     <p>טוען שירה…</p>
   </div>
 
-  <header id="topbar" hidden>
-    <button id="open-liked" class="icon-btn" aria-label="אהבתי" title="אהבתי">♥</button>
-    <button id="open-settings" class="icon-btn" aria-label="הגדרות" title="הגדרות">☰</button>
-  </header>
-
   <main id="stage" hidden>
     <div id="stack" aria-live="polite"></div>
-    <div id="hint">החליקו ימינה אם אהבתם · שמאלה אם לא</div>
     <div id="controls">
-      <button id="btn-nope" class="ctrl nope" aria-label="לא אהבתי">✕</button>
-      <button id="btn-undo" class="ctrl undo" aria-label="ביטול" disabled>↺</button>
-      <button id="btn-like" class="ctrl like" aria-label="אהבתי">♥</button>
+      <button id="menu-btn" class="ctrl menu" aria-label="תפריט" title="תפריט">☰</button>
+      <div class="ctrl-group">
+        <button id="btn-nope" class="ctrl nope" aria-label="לא אהבתי">✕</button>
+        <button id="btn-undo" class="ctrl undo" aria-label="ביטול" disabled>↺</button>
+        <button id="btn-like" class="ctrl like" aria-label="אהבתי">♥</button>
+      </div>
+      <div class="ctrl-spacer"></div>
     </div>
   </main>
 
@@ -33,6 +31,11 @@
     <div class="panel-inner">
       <button class="panel-close" data-close aria-label="סגירה">✕</button>
       <h2>הגדרות</h2>
+
+      <button id="open-liked-row" class="liked-row">
+        <span>♥ אהבתי</span>
+        <span id="liked-count" class="liked-count"></span>
+      </button>
 
       <label class="switch-row">
         <span>ניקוד</span>

@@ -1,13 +1,15 @@
 'use strict';
 
-/* Poetry Feed — a static, GitHub-Pages-ready swipe feed of Hebrew poetry.
-   No framework, no build step. Content: assets produced by scripts/build_corpus.py
-   from the Project Ben-Yehuda public-domain dump. */
+/* Poetry Feed — Tinder-style swipe deck with an on-device learner.
+   Swipe right = like (train +), left = dislike (train −). The recommender
+   (recommender.js) ranks unseen poems by predicted taste, with some
+   exploration. All state — likes, dislikes, model weights — lives in
+   localStorage. No server. */
 
 const DATA_URL = 'poems.json';
-const STORE_KEY = 'poetryfeed/v1';
-const BATCH = 6; // poems appended per chunk
-const MAX_SECTIONS = 42; // sliding-window cap before pruning the top
+const STORE_KEY = 'poetryfeed/v2';
+const EPSILON = 0.2; // exploration rate
+const CAND = 250; // candidates scored per pick
 
 const LANG_HE = {
   de: 'גרמנית', ru: 'רוסית', en: 'אנגלית', fr: 'צרפתית', la: 'לטינית',
@@ -17,13 +19,13 @@ const LANG_HE = {
 
 let POEMS = [];
 let byId = new Map();
-let deck = []; // shuffled, filtered
-let tailIndex = 0; // next deck index to render
+let model = null;
+let queue = []; // upcoming poems (front = queue[0])
+let lastAction = null; // single-level undo
 let state = loadState();
-let io = null;
 
-const $ = (sel) => document.querySelector(sel);
-const feed = $('#feed');
+const $ = (s) => document.querySelector(s);
+const stack = $('#stack');
 
 init();
 
@@ -37,16 +39,16 @@ async function init() {
     return;
   }
   byId = new Map(POEMS.map((p) => [p.id, p]));
+  model = new Recommender(state.weights);
 
   applySettingsToUI();
-  buildDeck();
-  io = new IntersectionObserver(onIntersect, { root: feed, threshold: [0.6] });
-  renderInitial();
+  fillQueue();
+  render();
   wireEvents();
 
   $('#loading').hidden = true;
-  feed.hidden = false;
   $('#topbar').hidden = false;
+  $('#stage').hidden = false;
 }
 
 /* ---------- state ---------- */
@@ -54,60 +56,71 @@ function loadState() {
   try {
     const s = JSON.parse(localStorage.getItem(STORE_KEY)) || {};
     return {
-      saved: new Set(s.saved || []),
+      liked: new Set(s.liked || []),
+      disliked: new Set(s.disliked || []),
       seen: new Set(s.seen || []),
+      weights: s.weights || {},
       settings: {
         nikkud: s.settings && typeof s.settings.nikkud === 'boolean' ? s.settings.nikkud : true,
         filter: (s.settings && s.settings.filter) || 'all',
       },
     };
   } catch {
-    return { saved: new Set(), seen: new Set(), settings: { nikkud: true, filter: 'all' } };
+    return { liked: new Set(), disliked: new Set(), seen: new Set(), weights: {}, settings: { nikkud: true, filter: 'all' } };
   }
 }
-
 let saveTimer = null;
 function persist() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    localStorage.setItem(
-      STORE_KEY,
-      JSON.stringify({
-        saved: [...state.saved],
-        seen: [...state.seen].slice(-5000),
-        settings: state.settings,
-      }),
-    );
-  }, 500);
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      liked: [...state.liked],
+      disliked: [...state.disliked],
+      seen: [...state.seen].slice(-6000),
+      weights: model.w,
+      settings: state.settings,
+    }));
+  }, 400);
 }
 
-/* ---------- deck ---------- */
-function pool() {
+/* ---------- recommender pick ---------- */
+function matchesFilter(p) {
   const f = state.settings.filter;
-  if (f === 'original') return POEMS.filter((p) => !p.is_translation);
-  if (f === 'translated') return POEMS.filter((p) => p.is_translation);
-  return POEMS;
+  if (f === 'original') return !p.is_translation;
+  if (f === 'translated') return p.is_translation;
+  return true;
 }
-function shuffle(a) {
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = (Math.random() * (i + 1)) | 0;
-    [a[i], a[j]] = [a[j], a[i]];
+function pickNext(exclude) {
+  let pool = POEMS.filter((p) => matchesFilter(p) && !state.seen.has(p.id) && !exclude.has(p.id));
+  if (!pool.length) pool = POEMS.filter((p) => matchesFilter(p) && !exclude.has(p.id)); // seen them all → reuse
+  if (!pool.length) return null;
+
+  if (Math.random() < EPSILON) return pool[(Math.random() * pool.length) | 0];
+
+  // score a random candidate sample, keep the best few, pick among them
+  const n = Math.min(CAND, pool.length);
+  let best = null;
+  let bestScore = -Infinity;
+  const top = [];
+  for (let i = 0; i < n; i++) {
+    const p = pool[(Math.random() * pool.length) | 0];
+    const s = model.prob(recFeatures(p));
+    if (s > bestScore) { bestScore = s; best = p; }
+    top.push([s, p]);
   }
-  return a;
+  top.sort((a, b) => b[0] - a[0]);
+  const k = Math.min(3, top.length);
+  return top[(Math.random() * k) | 0][1] || best;
 }
-function buildDeck() {
-  const p = pool();
-  const unseen = shuffle(p.filter((x) => !state.seen.has(x.id)));
-  const seen = shuffle(p.filter((x) => state.seen.has(x.id)));
-  deck = unseen.concat(seen);
-  tailIndex = 0;
+function queuedIds() {
+  return new Set(queue.map((p) => p.id));
 }
-function extendDeck() {
-  const more = shuffle(pool().slice());
-  if (more.length > 1 && deck.length && more[0].id === deck[deck.length - 1].id) {
-    [more[0], more[1]] = [more[1], more[0]];
+function fillQueue() {
+  while (queue.length < 3) {
+    const p = pickNext(queuedIds());
+    if (!p) break;
+    queue.push(p);
   }
-  deck = deck.concat(more);
 }
 
 /* ---------- rendering ---------- */
@@ -122,149 +135,152 @@ function lenClass(n) {
 }
 function transLabel(p) {
   const from = p.original_language && LANG_HE[p.original_language]
-    ? 'מתורגם מ' + LANG_HE[p.original_language]
-    : 'מתורגם';
+    ? 'מתורגם מ' + LANG_HE[p.original_language] : 'מתורגם';
   return from + (p.translator ? ' · תרגום: ' + p.translator : '');
 }
-
-function poemSection(p) {
-  const sec = document.createElement('section');
-  sec.className = 'poem ' + lenClass(p.length_lines);
-  sec.dataset.id = p.id;
-  const saved = state.saved.has(p.id);
-  sec.innerHTML =
-    '<div class="poem-main">' +
-    '<div class="poem-title"></div>' +
-    '<div class="poem-body"></div>' +
+function makeCard(p, depthClass) {
+  const card = document.createElement('article');
+  card.className = 'card ' + lenClass(p.length_lines) + (depthClass ? ' ' + depthClass : '');
+  card.dataset.id = p.id;
+  card.innerHTML =
+    '<div class="ov ov-like">אהבתי</div><div class="ov ov-nope">לא</div>' +
+    '<div class="card-main"><div class="poem-title"></div><div class="poem-body"></div>' +
     '<div class="poem-byline"><div class="poem-author"></div>' +
     (p.is_translation ? '<div class="poem-trans"></div>' : '') +
     '</div></div>' +
-    '<div class="poem-actions">' +
-    '<button class="act act-heart' + (saved ? ' on' : '') + '" data-act="save">' + (saved ? '♥' : '♡') + '</button>' +
-    '<button class="act" data-act="share">שיתוף</button>' +
-    '<button class="act" data-act="source">מקור</button>' +
-    '</div>';
-  sec.querySelector('.poem-title').textContent = p.title;
-  sec.querySelector('.poem-body').textContent = bodyText(p);
-  sec.querySelector('.poem-author').textContent = p.author;
-  if (p.is_translation) sec.querySelector('.poem-trans').textContent = transLabel(p);
-  return sec;
+    '<div class="card-foot"><button data-act="share">שיתוף</button><button data-act="source">מקור</button></div>';
+  card.querySelector('.poem-title').textContent = p.title;
+  card.querySelector('.poem-body').textContent = bodyText(p);
+  card.querySelector('.poem-author').textContent = p.author;
+  if (p.is_translation) card.querySelector('.poem-trans').textContent = transLabel(p);
+  return card;
 }
-
-function appendBatch() {
-  const frag = document.createDocumentFragment();
-  const fresh = [];
-  for (let k = 0; k < BATCH; k++) {
-    if (tailIndex >= deck.length) extendDeck();
-    if (tailIndex >= deck.length) break; // empty pool — nothing to render
-    const sec = poemSection(deck[tailIndex++]);
-    fresh.push(sec);
-    frag.appendChild(sec);
+function render() {
+  stack.innerHTML = '';
+  if (!queue.length) {
+    stack.innerHTML = '<div class="empty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">אין שירים בסינון הזה.</div>';
+    return;
   }
-  feed.appendChild(frag);
-  fresh.forEach((s) => io.observe(s));
-  pruneTop();
-}
-
-function pruneTop() {
-  const extra = feed.children.length - MAX_SECTIONS;
-  if (extra <= 0) return;
-  const h = feed.clientHeight; // every section is exactly one viewport tall
-  for (let i = 0; i < extra; i++) {
-    const first = feed.firstElementChild;
-    io.unobserve(first);
-    feed.removeChild(first);
+  // back-to-front so the front card is last in the DOM (on top)
+  const depth = ['behind2', 'behind', ''];
+  for (let i = Math.min(queue.length, 3) - 1; i >= 0; i--) {
+    stack.appendChild(makeCard(queue[i], depth[2 - i]));
   }
-  // Keep the current poem aligned: we removed `extra` viewport-tall sections.
-  feed.scrollTop -= extra * h;
+  attachGestures(stack.lastElementChild);
 }
 
-function renderInitial() {
-  io.disconnect();
-  feed.innerHTML = '';
-  tailIndex = 0;
-  appendBatch();
-  appendBatch();
-  feed.scrollTop = 0;
-}
+/* ---------- swipe gestures ---------- */
+function attachGestures(card) {
+  if (!card) return;
+  let startX = 0, startY = 0, dx = 0, dy = 0, decided = false, horizontal = false, active = false;
+  const width = () => stack.clientWidth || 360;
+  const likeOv = card.querySelector('.ov-like');
+  const nopeOv = card.querySelector('.ov-nope');
 
-function onIntersect(entries) {
-  for (const e of entries) {
-    if (!e.isIntersecting || e.intersectionRatio < 0.6) continue;
-    const sec = e.target;
-    markSeen(sec.dataset.id);
-    let after = 0;
-    let n = sec;
-    while (n.nextElementSibling) { after++; n = n.nextElementSibling; }
-    if (after < 3) appendBatch();
-  }
-}
-
-function markSeen(id) {
-  if (!state.seen.has(id)) {
-    state.seen.add(id);
-    persist();
-  }
-}
-
-/* ---------- actions ---------- */
-function setHeart(id, on) {
-  document.querySelectorAll('.poem').forEach((sec) => {
-    if (sec.dataset.id === id) {
-      const h = sec.querySelector('.act-heart');
-      h.classList.toggle('on', on);
-      h.textContent = on ? '♥' : '♡';
-    }
+  card.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.card-foot')) return; // let buttons work
+    active = true; decided = false; horizontal = false;
+    startX = e.clientX; startY = e.clientY; dx = 0; dy = 0;
+    card.classList.remove('snap');
   });
+  card.addEventListener('pointermove', (e) => {
+    if (!active) return;
+    dx = e.clientX - startX; dy = e.clientY - startY;
+    if (!decided) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      decided = true;
+      horizontal = Math.abs(dx) > Math.abs(dy);
+      if (horizontal) { try { card.setPointerCapture(e.pointerId); } catch {} }
+    }
+    if (!horizontal) return; // vertical → let the poem body scroll
+    e.preventDefault();
+    card.style.transform = `translate(${dx}px, ${dy * 0.15}px) rotate(${dx * 0.05}deg)`;
+    const t = width() * 0.28;
+    likeOv.style.opacity = dx > 0 ? Math.min(dx / t, 1) : 0;
+    nopeOv.style.opacity = dx < 0 ? Math.min(-dx / t, 1) : 0;
+  });
+  const end = () => {
+    if (!active) return;
+    active = false;
+    if (horizontal && Math.abs(dx) > width() * 0.28) {
+      commit(dx > 0 ? 'like' : 'nope');
+    } else {
+      card.classList.add('snap');
+      card.style.transform = '';
+      likeOv.style.opacity = 0; nopeOv.style.opacity = 0;
+    }
+  };
+  card.addEventListener('pointerup', end);
+  card.addEventListener('pointercancel', end);
 }
-function toggleSave(p) {
-  if (state.saved.has(p.id)) state.saved.delete(p.id);
-  else state.saved.add(p.id);
-  setHeart(p.id, state.saved.has(p.id));
+
+/* ---------- commit / like / dislike ---------- */
+function commit(kind) {
+  const p = queue[0];
+  if (!p) return;
+  const front = stack.lastElementChild;
+  if (front) front.classList.add(kind === 'like' ? 'gone-r' : 'gone-l');
+
+  const y = kind === 'like' ? 1 : 0;
+  const deltas = model.update(recFeatures(p), y);
+  state.seen.add(p.id);
+  if (y === 1) state.liked.add(p.id); else state.disliked.add(p.id);
+  lastAction = { id: p.id, y, deltas };
+  $('#btn-undo').disabled = false;
+
+  queue.shift();
+  fillQueue();
   persist();
+  // let the fling animation play before re-stacking
+  setTimeout(render, 180);
 }
+function undo() {
+  if (!lastAction) return;
+  const p = byId.get(lastAction.id);
+  model.undo(lastAction.deltas);
+  state.seen.delete(lastAction.id);
+  if (lastAction.y === 1) state.liked.delete(lastAction.id);
+  else state.disliked.delete(lastAction.id);
+  queue.unshift(p);
+  lastAction = null;
+  $('#btn-undo').disabled = true;
+  persist();
+  render();
+}
+
+/* ---------- actions on a poem ---------- */
 async function sharePoem(p) {
   const text = p.title + '\n' + p.author + '\n\n' + p.body_plain +
     '\n\n— מתוך מיזם בן-יהודה\n' + p.source_url;
-  if (navigator.share) {
-    try { await navigator.share({ title: p.title, text }); } catch {}
-  } else {
-    try { await navigator.clipboard.writeText(text); toast('השיר הועתק'); }
-    catch { window.open(p.source_url, '_blank', 'noopener'); }
-  }
+  if (navigator.share) { try { await navigator.share({ title: p.title, text }); } catch {} }
+  else { try { await navigator.clipboard.writeText(text); toast('השיר הועתק'); } catch { window.open(p.source_url, '_blank', 'noopener'); } }
 }
 
 /* ---------- panels ---------- */
-function openPanel(sel) { $(sel).hidden = false; }
-function closePanels() {
-  ['#settings-panel', '#saved-panel', '#reader'].forEach((s) => ($(s).hidden = true));
-}
+function openPanel(s) { $(s).hidden = false; }
+function closePanels() { ['#settings-panel', '#liked-panel', '#reader'].forEach((s) => ($(s).hidden = true)); }
 
-function renderSaved() {
-  const ul = $('#saved-list');
+function renderLiked() {
+  const ul = $('#liked-list');
   ul.innerHTML = '';
-  const items = [...state.saved].map((id) => byId.get(id)).filter(Boolean).reverse();
-  $('#saved-empty').hidden = items.length > 0;
+  const items = [...state.liked].map((id) => byId.get(id)).filter(Boolean).reverse();
+  $('#liked-empty').hidden = items.length > 0;
   items.forEach((p) => {
     const li = document.createElement('li');
     li.dataset.id = p.id;
-    li.innerHTML = '<button class="s-remove" data-remove aria-label="הסרה">✕</button>' +
-      '<div class="s-title"></div><div class="s-author"></div>';
+    li.innerHTML = '<button class="s-remove" data-remove aria-label="הסרה">✕</button><div class="s-title"></div><div class="s-author"></div>';
     li.querySelector('.s-title').textContent = p.title;
     li.querySelector('.s-author').textContent = p.author + (p.is_translation ? ' · מתורגם' : '');
     ul.appendChild(li);
   });
 }
-
 function openReader(p) {
   const el = $('#reader-body');
   el.dataset.id = p.id;
   el.innerHTML = '<div class="poem-title"></div><div class="poem-body"></div>' +
     '<div class="poem-byline"><div class="poem-author"></div>' +
-    (p.is_translation ? '<div class="poem-trans"></div>' : '') +
-    '</div><div class="poem-actions">' +
-    '<button class="act" data-r="share">שיתוף</button>' +
-    '<button class="act" data-r="source">מקור</button></div>';
+    (p.is_translation ? '<div class="poem-trans"></div>' : '') + '</div>' +
+    '<div class="card-foot"><button data-r="share">שיתוף</button><button data-r="source">מקור</button></div>';
   el.querySelector('.poem-title').textContent = p.title;
   el.querySelector('.poem-body').textContent = bodyText(p);
   el.querySelector('.poem-author').textContent = p.author;
@@ -278,39 +294,55 @@ function openReader(p) {
 function applySettingsToUI() {
   $('#nikkud-toggle').checked = state.settings.nikkud;
   updateSegUI();
+  updateLearned();
 }
 function updateSegUI() {
   document.querySelectorAll('#filter-segment .seg-btn').forEach((b) => {
     b.classList.toggle('on', b.dataset.filter === state.settings.filter);
   });
 }
+function updateLearned() {
+  const tastes = model ? model.topTastes(5) : [];
+  const n = state.liked.size + state.disliked.size;
+  const el = $('#learned');
+  if (n < 4) el.textContent = 'עוד מעט… החליקו על כמה שירים ואלמד מה אתם אוהבים.';
+  else if (!tastes.length) el.textContent = 'לומד… (' + n + ' החלקות)';
+  else el.textContent = 'נראה שאתם נמשכים אל: ' + tastes.join(' · ') + '.';
+}
 
 /* ---------- events ---------- */
 function wireEvents() {
-  feed.addEventListener('click', (e) => {
-    const btn = e.target.closest('.act');
-    if (!btn) return;
-    const sec = e.target.closest('.poem');
-    const p = byId.get(sec.dataset.id);
+  // per-card foot buttons (share/source)
+  stack.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    const p = byId.get(e.target.closest('.card').dataset.id);
     if (!p) return;
-    const act = btn.dataset.act;
-    if (act === 'save') toggleSave(p);
-    else if (act === 'share') sharePoem(p);
-    else if (act === 'source') window.open(p.source_url, '_blank', 'noopener');
+    if (b.dataset.act === 'share') sharePoem(p);
+    else window.open(p.source_url, '_blank', 'noopener');
+  });
+
+  $('#btn-like').addEventListener('click', () => commit('like'));
+  $('#btn-nope').addEventListener('click', () => commit('nope'));
+  $('#btn-undo').addEventListener('click', undo);
+
+  document.addEventListener('keydown', (e) => {
+    if (!$('#settings-panel').hidden || !$('#liked-panel').hidden || !$('#reader').hidden) return;
+    if (e.key === 'ArrowRight') commit('like');
+    else if (e.key === 'ArrowLeft') commit('nope');
+    else if (e.key === 'Backspace' || e.key === 'u') undo();
   });
 
   $('#nikkud-toggle').addEventListener('change', (e) => {
     state.settings.nikkud = e.target.checked;
     persist();
-    document.querySelectorAll('.poem').forEach((sec) => {
-      const p = byId.get(sec.dataset.id);
-      if (p) sec.querySelector('.poem-body').textContent = bodyText(p);
+    document.querySelectorAll('.card').forEach((card) => {
+      const p = byId.get(card.dataset.id);
+      if (p) card.querySelector('.poem-body').textContent = bodyText(p);
     });
-    const readerBody = $('#reader-body');
-    const rp = readerBody && byId.get(readerBody.dataset.id);
-    if (rp && !$('#reader').hidden) {
-      readerBody.querySelector('.poem-body').textContent = bodyText(rp);
-    }
+    const rb = $('#reader-body');
+    const rp = rb && byId.get(rb.dataset.id);
+    if (rp && !$('#reader').hidden) rb.querySelector('.poem-body').textContent = bodyText(rp);
   });
 
   $('#filter-segment').addEventListener('click', (e) => {
@@ -319,31 +351,42 @@ function wireEvents() {
     state.settings.filter = b.dataset.filter;
     persist();
     updateSegUI();
-    buildDeck();
-    renderInitial();
+    queue = [];
+    fillQueue();
+    render();
+  });
+
+  $('#reset-learning').addEventListener('click', () => {
+    model.w = {};
+    state.weights = {};
+    state.disliked.clear();
+    state.seen = new Set([...state.liked]); // keep likes out of the deck, forget the rest
+    queue = [];
+    fillQueue();
+    render();
+    updateLearned();
+    persist();
+    toast('הלמידה אופסה');
   });
 
   $('#open-settings').addEventListener('click', () => {
     $('#corpus-count').textContent =
       POEMS.length.toLocaleString('he') + ' שירים · ' +
       POEMS.filter((p) => p.is_translation).length + ' מתורגמים';
+    updateLearned();
     openPanel('#settings-panel');
   });
-  $('#open-saved').addEventListener('click', () => {
-    renderSaved();
-    openPanel('#saved-panel');
-  });
+  $('#open-liked').addEventListener('click', () => { renderLiked(); openPanel('#liked-panel'); });
 
-  $('#saved-list').addEventListener('click', (e) => {
+  $('#liked-list').addEventListener('click', (e) => {
     const li = e.target.closest('li');
     if (!li) return;
     const p = byId.get(li.dataset.id);
     if (!p) return;
     if (e.target.closest('[data-remove]')) {
-      state.saved.delete(p.id);
-      setHeart(p.id, false);
+      state.liked.delete(p.id);
       persist();
-      renderSaved();
+      renderLiked();
     } else {
       openReader(p);
     }
@@ -351,9 +394,7 @@ function wireEvents() {
 
   document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closePanels));
   document.querySelectorAll('.panel').forEach((panel) => {
-    panel.addEventListener('click', (e) => {
-      if (e.target === panel) closePanels();
-    });
+    panel.addEventListener('click', (e) => { if (e.target === panel) closePanels(); });
   });
 }
 
@@ -364,10 +405,7 @@ function toast(msg) {
   if (!t) {
     t = document.createElement('div');
     t.id = 'toast';
-    t.style.cssText =
-      'position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--ink);' +
-      'color:var(--bg);padding:9px 16px;border-radius:999px;font-size:0.9rem;z-index:40;' +
-      'opacity:0;transition:opacity .2s;pointer-events:none';
+    t.style.cssText = 'position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:0.9rem;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none';
     document.body.appendChild(t);
   }
   t.textContent = msg;
@@ -375,10 +413,8 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (t.style.opacity = '0'), 1600);
 }
-
 function showError(e) {
   const l = $('#loading');
-  l.innerHTML =
-    '<p style="font-size:1.1rem">לא הצלחנו לטעון את השירים</p>' +
+  l.innerHTML = '<p style="font-size:1.1rem">לא הצלחנו לטעון את השירים</p>' +
     '<p style="font-size:0.85rem;color:var(--ink-faint)">' + (e && e.message ? e.message : '') + '</p>';
 }

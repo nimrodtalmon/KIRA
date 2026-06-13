@@ -47,7 +47,6 @@ async function init() {
   wireEvents();
 
   $('#loading').hidden = true;
-  $('#topbar').hidden = false;
   $('#stage').hidden = false;
 }
 
@@ -369,14 +368,19 @@ function wireEvents() {
     toast('הלמידה אופסה');
   });
 
-  $('#open-settings').addEventListener('click', () => {
+  $('#menu-btn').addEventListener('click', () => {
     $('#corpus-count').textContent =
       POEMS.length.toLocaleString('he') + ' שירים · ' +
       POEMS.filter((p) => p.is_translation).length + ' מתורגמים';
+    $('#liked-count').textContent = state.liked.size ? state.liked.size : '';
     updateLearned();
     openPanel('#settings-panel');
   });
-  $('#open-liked').addEventListener('click', () => { renderLiked(); openPanel('#liked-panel'); });
+  $('#open-liked-row').addEventListener('click', () => {
+    closePanels();
+    renderLiked();
+    openPanel('#liked-panel');
+  });
 
   $('#liked-list').addEventListener('click', (e) => {
     const li = e.target.closest('li');

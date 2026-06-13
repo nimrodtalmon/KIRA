@@ -52,7 +52,6 @@ body { overflow: hidden; }
   position: relative;
   flex: 1;
   min-height: 0;
-  margin-bottom: 8px;
 }
 
 .card {
@@ -67,7 +66,9 @@ body { overflow: hidden; }
   padding: 30px 24px 16px;
   overflow: hidden;
   will-change: transform;
-  touch-action: pan-y;
+  /* All gestures go to JS: horizontal = swipe (anywhere on the card),
+     vertical = scroll the poem body manually. */
+  touch-action: none;
 }
 .card.behind { transform: scale(0.95) translateY(12px); }
 .card.behind2 { transform: scale(0.9) translateY(24px); opacity: 0.6; }
@@ -123,24 +124,20 @@ body { overflow: hidden; }
 .ov-like { right: 26px; color: var(--like); border-color: var(--like); transform: rotate(14deg); }
 .ov-nope { left: 26px; color: var(--nope); border-color: var(--nope); transform: rotate(-14deg); }
 
-/* ---------- Controls ---------- */
-#controls { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; }
-.ctrl-group { display: flex; align-items: center; gap: 26px; }
-.ctrl-spacer { width: 46px; }
-.ctrl {
+/* ---------- Floating menu button ---------- */
+.menu-fab {
+  position: fixed;
+  left: 14px;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(251, 247, 238, 0.85);
+  backdrop-filter: blur(6px);
   border: 1px solid var(--line);
-  background: var(--card);
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); font-size: 1.2rem; cursor: pointer;
+  z-index: 6;
   box-shadow: 0 4px 12px rgba(43, 38, 32, 0.1);
 }
-.ctrl.nope { width: 60px; height: 60px; font-size: 1.5rem; color: var(--nope); }
-.ctrl.like { width: 60px; height: 60px; font-size: 1.6rem; color: var(--like); }
-.ctrl.undo { width: 46px; height: 46px; font-size: 1.1rem; color: var(--ink-faint); }
-.ctrl.menu { width: 46px; height: 46px; font-size: 1.2rem; color: var(--accent); }
-.ctrl:active { transform: scale(0.92); }
-.ctrl:disabled { opacity: 0.4; }
+.menu-fab:active { transform: scale(0.92); }
 
 /* ---------- Panels ---------- */
 .panel {

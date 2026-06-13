@@ -171,16 +171,21 @@ function render() {
 /* ---------- swipe gestures ---------- */
 function attachGestures(card) {
   if (!card) return;
-  let startX = 0, startY = 0, dx = 0, dy = 0, decided = false, horizontal = false, active = false;
-  const width = () => stack.clientWidth || 360;
+  const body = card.querySelector('.poem-body');
   const likeOv = card.querySelector('.ov-like');
   const nopeOv = card.querySelector('.ov-nope');
+  let startX = 0, startY = 0, lastY = 0, dx = 0, dy = 0, decided = false, horizontal = false, active = false;
+  const width = () => stack.clientWidth || 360;
+  const THRESH = () => width() * 0.25;
 
   card.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('.card-foot')) return; // let buttons work
+    if (e.target.closest('.card-foot')) return; // let share/source buttons work
     active = true; decided = false; horizontal = false;
-    startX = e.clientX; startY = e.clientY; dx = 0; dy = 0;
+    startX = e.clientX; startY = e.clientY; lastY = e.clientY; dx = 0; dy = 0;
     card.classList.remove('snap');
+    // Capture so a horizontal swipe is recognised wherever it starts on the card
+    // (the body's scroll can't steal it — touch-action is none; we scroll in JS).
+    try { card.setPointerCapture(e.pointerId); } catch {}
   });
   card.addEventListener('pointermove', (e) => {
     if (!active) return;
@@ -189,19 +194,21 @@ function attachGestures(card) {
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
       decided = true;
       horizontal = Math.abs(dx) > Math.abs(dy);
-      if (horizontal) { try { card.setPointerCapture(e.pointerId); } catch {} }
     }
-    if (!horizontal) return; // vertical → let the poem body scroll
-    e.preventDefault();
-    card.style.transform = `translate(${dx}px, ${dy * 0.15}px) rotate(${dx * 0.05}deg)`;
-    const t = width() * 0.28;
-    likeOv.style.opacity = dx > 0 ? Math.min(dx / t, 1) : 0;
-    nopeOv.style.opacity = dx < 0 ? Math.min(-dx / t, 1) : 0;
+    if (horizontal) {
+      card.style.transform = `translate(${dx}px, ${dy * 0.12}px) rotate(${dx * 0.05}deg)`;
+      const t = THRESH();
+      likeOv.style.opacity = dx > 0 ? Math.min(dx / t, 1) : 0;
+      nopeOv.style.opacity = dx < 0 ? Math.min(-dx / t, 1) : 0;
+    } else if (body) {
+      body.scrollTop -= e.clientY - lastY; // vertical → scroll the poem ourselves
+    }
+    lastY = e.clientY;
   });
   const end = () => {
     if (!active) return;
     active = false;
-    if (horizontal && Math.abs(dx) > width() * 0.28) {
+    if (horizontal && Math.abs(dx) > THRESH()) {
       commit(dx > 0 ? 'like' : 'nope');
     } else {
       card.classList.add('snap');
@@ -225,7 +232,6 @@ function commit(kind) {
   state.seen.add(p.id);
   if (y === 1) state.liked.add(p.id); else state.disliked.add(p.id);
   lastAction = { id: p.id, y, deltas };
-  $('#btn-undo').disabled = false;
 
   queue.shift();
   fillQueue();
@@ -242,7 +248,6 @@ function undo() {
   else state.disliked.delete(lastAction.id);
   queue.unshift(p);
   lastAction = null;
-  $('#btn-undo').disabled = true;
   persist();
   render();
 }
@@ -321,10 +326,8 @@ function wireEvents() {
     else window.open(p.source_url, '_blank', 'noopener');
   });
 
-  $('#btn-like').addEventListener('click', () => commit('like'));
-  $('#btn-nope').addEventListener('click', () => commit('nope'));
-  $('#btn-undo').addEventListener('click', undo);
-
+  // Keyboard shortcuts for desktop (the on-screen buttons are gone):
+  // → like, ← dislike, Backspace/u undo.
   document.addEventListener('keydown', (e) => {
     if (!$('#settings-panel').hidden || !$('#liked-panel').hidden || !$('#reader').hidden) return;
     if (e.key === 'ArrowRight') commit('like');

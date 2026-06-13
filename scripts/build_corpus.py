@@ -93,6 +93,39 @@ def denik(s: str) -> str:
     return NIKKUD_RE.sub("", s or "")
 
 
+# Curated representative period (≈ floruit/death year) for the well-known poets,
+# keyed by nikkud-stripped author name. Project Ben-Yehuda is public-domain only,
+# so the *newest* poetry here is the early-20th-century Hebrew revival — there is
+# nothing recent to date. Years are approximate (±~15y); they drive a "period"
+# filter ("show me the more modern poetry"), not scholarship. Authors not listed
+# get year=null and are only shown when the period filter is wide open.
+AUTHOR_YEAR = {
+    # Medieval Sepharad / Andalusia (10th–13th c.)
+    "שמואל הנגיד": 1040, "שלמה אבן גבירול": 1050, "יהודה הלוי": 1130,
+    "משה אבן עזרא": 1120, "אברהם אבן עזרא": 1140, "יצחק אבן גיאת": 1070,
+    "יצחק אבן כלפון": 1000, "אברהם אבן חלפון": 1050, "אברהם בן חלפון": 1050,
+    "טודרוס בן יהודה אבולעפיה": 1280, "אלעזר בן יעקב הבבלי": 1250,
+    "וידל בנבנשתי": 1400, "יוסף צרפתי": 1500,
+    # Yemenite
+    "שלום שבזי": 1680, "זכריה אלצ'אהרי": 1580,
+    # Italian / Haskalah (18th–19th c.)
+    "אפרים לוצטו": 1770, "רחל מורפורגו": 1840, "יוסף אלמנצי": 1840,
+    "שלמה מנדלקרן": 1890, "יהודה ליב גורדון": 1875, "מרדכי צבי מאנה": 1880,
+    "נפתלי הרץ אימבר": 1890, "שמעון שמואל פרוג": 1900, "סלימאן מנחם מני": 1900,
+    # Modern Hebrew revival (late 19th – mid 20th c.) — the newest available
+    "חיים נחמן ביאליק": 1910, "שאול טשרניחובסקי": 1920, "רחל בלובשטיין": 1925,
+    "דוד פוגל": 1930, "יצחק קצנלסון": 1930, "יהודה קרני": 1930,
+    "יעקב שטיינברג": 1925, "חיים לנסקי": 1935, "פניה ברגשטיין": 1940,
+    "אלישבע": 1930, "אשר ברש": 1930, "אברהם בן־יצחק": 1920, "אברהם בן-יצחק": 1920,
+    "שמעון גינצבורג": 1930, "אלתר לוין": 1920, "אהרן ליבושיצקי": 1910,
+    "יעקב פיכמן": 1930, "יעקב כהן": 1925, "זלמן שניאור": 1930,
+    "דוד שמעוני": 1930, "יעקב שטיינברג": 1925, "אנדה עמיר": 1940,
+    # Translated foreign originals (era of the original poet)
+    "היינריך היינה": 1840, "יוהן וולפגנג פון גתה": 1810, "ניקולאוס לנאו": 1840,
+    "אלכסנדר פושקין": 1830, "מיכאיל לרמונטוב": 1840,
+}
+
+
 def log(*a):
     print(*a, file=sys.stderr, flush=True)
 
@@ -269,6 +302,7 @@ def build(args) -> int:
             "body_plain": body_plain,
             "length_lines": n,
             "source_url": f"https://benyehuda.org/read{r.get('path')}",
+            "year": AUTHOR_YEAR.get(denik(author)),
             "tags": tags,
         })
 

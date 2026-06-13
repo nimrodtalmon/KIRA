@@ -21,6 +21,11 @@ Works fully offline once loaded.
 - **8,719 poems**, 313 authors, **489 translations** (de/ru/en/fr/la/grc/yi…).
 - Nikkud toggle (instant swap between vocalized / plain), persisted.
 - Filter: all / Hebrew-original / translated.
+- **Period slider**: drag from medieval toward the early-20th-century modern
+  revival (Bialik, Rachel, Tchernichovsky, Fogel, Lensky…). Note: the corpus is
+  public-domain only, so the *newest* poetry it can hold is ~early 20th century —
+  there's nothing from the last several decades. Periods are curated per poet
+  (≈ floruit year), ~80% of poems dated.
 - Liked poems collect in a local **אהבתי** list; share + per-poem **מקור** link.
 - Bundled **Frank Ruhl Libre** Hebrew serif (real nikkud support, OFL).
 

@@ -67,9 +67,11 @@ body { overflow: hidden; }
   overflow: hidden;
   will-change: transform;
   /* All gestures go to JS: horizontal = swipe (anywhere on the card),
-     vertical = scroll the poem body manually. */
+     vertical = scroll the poem body manually. touch-action:none must cover the
+     descendants too (esp. the scrollable .poem-body) or they steal the drag. */
   touch-action: none;
 }
+.card * { touch-action: none; }
 .card.behind { transform: scale(0.95) translateY(12px); }
 .card.behind2 { transform: scale(0.9) translateY(24px); opacity: 0.6; }
 .card.snap { transition: transform 0.28s cubic-bezier(.2,.8,.2,1); }
@@ -179,6 +181,15 @@ body { overflow: hidden; }
 .segment { display: flex; gap: 4px; background: var(--bg-deep); border-radius: 10px; padding: 4px; }
 .seg-btn { flex: 1; padding: 9px 0; border: none; border-radius: 7px; background: none; font-family: var(--serif); font-size: 0.95rem; color: var(--ink-soft); cursor: pointer; }
 .seg-btn.on { background: var(--card); color: var(--ink); font-weight: 700; }
+
+.era-block { padding: 16px 0; border-bottom: 1px solid var(--line); }
+#era-slider {
+  width: 100%;
+  margin: 14px 0 6px;
+  accent-color: var(--accent);
+  direction: ltr; /* low year (old) on the left, high year (modern) on the right */
+}
+.era-label { font-size: 0.95rem; color: var(--ink-soft); text-align: center; }
 
 .learn-block { padding: 16px 0; border-bottom: 1px solid var(--line); }
 .learn-block h3 { font-size: 1.05rem; margin-bottom: 8px; }

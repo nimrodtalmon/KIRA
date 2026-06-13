@@ -10,6 +10,8 @@ const DATA_URL = 'poems.json';
 const STORE_KEY = 'poetryfeed/v2';
 const EPSILON = 0.2; // exploration rate
 const CAND = 250; // candidates scored per pick
+const YEAR_MIN = 1000; // period slider bounds (corpus is public-domain → early 20th c. is newest)
+const YEAR_MAX = 1940;
 
 const LANG_HE = {
   de: 'גרמנית', ru: 'רוסית', en: 'אנגלית', fr: 'צרפתית', la: 'לטינית',
@@ -62,10 +64,11 @@ function loadState() {
       settings: {
         nikkud: s.settings && typeof s.settings.nikkud === 'boolean' ? s.settings.nikkud : true,
         filter: (s.settings && s.settings.filter) || 'all',
+        eraMin: (s.settings && Number(s.settings.eraMin)) || YEAR_MIN,
       },
     };
   } catch {
-    return { liked: new Set(), disliked: new Set(), seen: new Set(), weights: {}, settings: { nikkud: true, filter: 'all' } };
+    return { liked: new Set(), disliked: new Set(), seen: new Set(), weights: {}, settings: { nikkud: true, filter: 'all', eraMin: YEAR_MIN } };
   }
 }
 let saveTimer = null;
@@ -89,9 +92,17 @@ function matchesFilter(p) {
   if (f === 'translated') return p.is_translation;
   return true;
 }
+function matchesEra(p) {
+  const m = state.settings.eraMin;
+  if (m <= YEAR_MIN) return true; // slider wide open → all periods, incl. undated
+  return p.year != null && p.year >= m;
+}
+function passes(p) {
+  return matchesFilter(p) && matchesEra(p);
+}
 function pickNext(exclude) {
-  let pool = POEMS.filter((p) => matchesFilter(p) && !state.seen.has(p.id) && !exclude.has(p.id));
-  if (!pool.length) pool = POEMS.filter((p) => matchesFilter(p) && !exclude.has(p.id)); // seen them all → reuse
+  let pool = POEMS.filter((p) => passes(p) && !state.seen.has(p.id) && !exclude.has(p.id));
+  if (!pool.length) pool = POEMS.filter((p) => passes(p) && !exclude.has(p.id)); // seen them all → reuse
   if (!pool.length) return null;
 
   if (Math.random() < EPSILON) return pool[(Math.random() * pool.length) | 0];
@@ -297,8 +308,20 @@ function openReader(p) {
 /* ---------- settings UI ---------- */
 function applySettingsToUI() {
   $('#nikkud-toggle').checked = state.settings.nikkud;
+  $('#era-slider').value = state.settings.eraMin;
   updateSegUI();
+  updateEraUI();
   updateLearned();
+}
+function eraWord(y) {
+  if (y < 1500) return 'ימי הביניים';
+  if (y < 1800) return 'תור הזהב המאוחר';
+  if (y < 1880) return 'תקופת ההשכלה';
+  return 'התחייה המודרנית';
+}
+function updateEraUI() {
+  const m = state.settings.eraMin;
+  $('#era-label').textContent = m <= YEAR_MIN ? 'כל התקופות' : `משנת ${m} ואילך · ${eraWord(m)}`;
 }
 function updateSegUI() {
   document.querySelectorAll('#filter-segment .seg-btn').forEach((b) => {
@@ -353,6 +376,19 @@ function wireEvents() {
     state.settings.filter = b.dataset.filter;
     persist();
     updateSegUI();
+    queue = [];
+    fillQueue();
+    render();
+  });
+
+  const era = $('#era-slider');
+  era.addEventListener('input', () => {
+    state.settings.eraMin = Number(era.value);
+    updateEraUI(); // live label while dragging
+  });
+  era.addEventListener('change', () => {
+    state.settings.eraMin = Number(era.value);
+    persist();
     queue = [];
     fillQueue();
     render();

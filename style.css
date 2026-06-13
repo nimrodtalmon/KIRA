@@ -67,9 +67,11 @@ body { overflow: hidden; }
   overflow: hidden;
   will-change: transform;
   /* All gestures go to JS: horizontal = swipe (anywhere on the card),
-     vertical = scroll the poem body manually. */
+     vertical = scroll the poem body manually. touch-action:none must cover the
+     descendants too (esp. the scrollable .poem-body) or they steal the drag. */
   touch-action: none;
 }
+.card * { touch-action: none; }
 .card.behind { transform: scale(0.95) translateY(12px); }
 .card.behind2 { transform: scale(0.9) translateY(24px); opacity: 0.6; }
 .card.snap { transition: transform 0.28s cubic-bezier(.2,.8,.2,1); }
